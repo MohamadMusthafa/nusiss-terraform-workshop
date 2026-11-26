@@ -4,7 +4,20 @@ Terraform provisions the `bgg-net` Docker network, a persistent MySQL container,
 
 ## Set up the controller and Docker host
 
-Follow steps 1–11 of the course guide to create the Ubuntu 22.04 x64 controller in Singapore, register its public SSH key as `www-1`, install Terraform and Docker Engine, and create the Ubuntu 24.04 Docker Machine named `docker-nginx`. The controller, Docker host and proxy are three billable Droplets. [Course setup](https://github.com/kenken64/NUSISS-DevSecOpsEng/blob/master/workshop/workshop3-1.md#solution) · [Docker Engine apt installation](https://docs.docker.com/engine/install/ubuntu/#install-using-the-apt-repository)
+The course starts with an Ubuntu 22.04 x64 controller in Singapore. The verified run reused the group's existing Ubuntu 24.04 controller and created two Droplets, one for Docker and one for Nginx. Follow steps 3–10 on the controller to register its public SSH key as `www-1` and install Terraform, Docker Engine and Docker Machine. [Course setup](https://github.com/kenken64/NUSISS-DevSecOpsEng/blob/master/workshop/workshop3-1.md#solution) · [Docker Engine apt installation](https://docs.docker.com/engine/install/ubuntu/#install-using-the-apt-repository)
+
+The guide's regular Droplet sizes were unavailable in Singapore during this run. To reproduce it, set the course's `DO_PAT` in the controller shell and use the Intel size for both hosts. Run this command once to create the Docker host.
+
+```bash
+export DIGITALOCEAN_ACCESS_TOKEN="${DO_PAT:?Set DO_PAT on the controller}"
+docker-machine create \
+  --driver digitalocean \
+  --digitalocean-image ubuntu-24-04-x64 \
+  --digitalocean-region sgp1 \
+  --digitalocean-size s-1vcpu-1gb-intel \
+  --digitalocean-backups=false \
+  docker-nginx
+```
 
 ## Deploy from the controller
 
@@ -12,6 +25,7 @@ From this directory on the controller, with the course's `DO_PAT` set in the she
 
 ```bash
 export TF_VAR_do_token="${DO_PAT:?Set DO_PAT on the controller}"
+export TF_VAR_do_size="s-1vcpu-1gb-intel"
 export TF_VAR_docker_host="$(docker-machine ip docker-nginx)"
 export TF_VAR_docker_cert_path="$HOME/.docker/machine/machines/docker-nginx"
 export TF_VAR_ssh_private_key="$HOME/.ssh/id_rsa"
@@ -38,3 +52,5 @@ test -f "root@$proxy_ip" && test ! -s "root@$proxy_ip" && echo "Empty SSH marker
 ```
 
 `backend_endpoints` lists one Docker host address and port per backend. The generated `nginx.conf` should contain the same three endpoints. The empty `root@<proxy-ip>` file is created when the proxy configuration has been installed and reloaded.
+
+The verified deployment had three backends. A search through the Nginx proxy returned **Gloomhaven**, game ID `174430`.
